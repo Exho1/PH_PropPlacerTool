@@ -4,26 +4,18 @@ end
 
 SWEP.PrintName 				= "Prop Adder"
 SWEP.Author					= "Exho"
-SWEP.Contact				= ""
+SWEP.Contact				= "STEAM_0:0:53332328"
 SWEP.Purpose				= "To 'rearm' Prop Hunt maps with prop_physics"
 SWEP.Instructions			= "M1 to spawn, M2 to copy model, and Reload to save"
-SWEP.Category				= "Prop Adder" 
+SWEP.Category				= "Prop Hunt" 
 
 SWEP.Slot					= 3
 SWEP.SlotPos				= 1
-SWEP.DrawAmmo 				= true
+SWEP.DrawAmmo 				= false
 SWEP.DrawCrosshair 			= true
 SWEP.HoldType				= "normal"
 SWEP.Spawnable			 	= false
 SWEP.AdminSpawnable			= true 
-
-SWEP.Primary.Ammo       	= "none"
-SWEP.Primary.Delay      	= 0
-SWEP.Secondary.Delay    	= 0
-SWEP.Primary.ClipSize   	= 0
-SWEP.Primary.ClipMax     	= 0
-SWEP.Primary.DefaultClip 	= 0
-SWEP.Primary.Automatic	 	= false
 
 SWEP.ViewModel          	= "models/weapons/v_pistol.mdl"
 SWEP.WorldModel          	= "models/weapons/w_pistol.mdl"
@@ -31,7 +23,7 @@ SWEP.ViewModelFlip		 	= false
 
 -- Why are these not SWEP variables? Because I used a local function below and I cant call self in them
 local SelectedModel 		= "models/props_junk/wood_crate001a.mdl"
-local BoundingRad 			= 35 -- Bounding radius of ^
+local BoundingRad 			= 35 -- Bounding radius of the model
 
 
 local seen = false
@@ -51,8 +43,10 @@ function SWEP:PrimaryAttack()
 		ent:SetPos(hit + Vector(0, 0, BoundingRad))
 		ent:SetModel(SelectedModel)
 		ent:Spawn()
-		ent.PSpawned = true 
-		ent:SetColor(0, 255, 0, 255 ) -- Supposed to be green, its pink... Oh well
+		ent.PSpawned = true -- This was spawned through the weapon
+
+		ent:SetColor( Color( 0, 255, 0, 230 - BoundingRad ) ) -- Make it noticeable against the regular props
+		ent:SetRenderMode( RENDERMODE_TRANSALPHA ) -- This apparently is needed to make it color
 		
 		-- Because everyone makes mistakes
 		undo.Create("prop")
@@ -71,7 +65,6 @@ function SWEP:SecondaryAttack()
 	
 	local ply = self.Owner
 	local tr = ply:GetEyeTrace()
-	
 	local ent = tr.Entity
 	
 	if string.sub( ent:GetClass(), 1, 5 ) ~= "prop_" or not IsValid(ent) then 
@@ -109,9 +102,19 @@ function SWEP:Reload()
 	end
 end
 
+
 local function SetModel(mdl)
 	mdl = table.concat( mdl, " " )
 	SelectedModel = string.Trim(mdl)
+	if SelectedModel == "" then print("Invalid model") return end
+	
+	-- We need a bounding radius to prevent clipping
+	local RefEnt = ents.Create("prop_physics") -- Create a fake prop
+	RefEnt:SetPos( Vector(0,0,0) ) -- Put it somewhere no one should find it
+	RefEnt:SetModel(SelectedModel) 
+	RefEnt:Spawn() -- Create it
+	BoundingRad = RefEnt:BoundingRadius() -- Get our radius
+	timer.Simple(0.5, function() SafeRemoveEntity(RefEnt) end) -- Get rid of it before anyone notices
 end
 concommand.Add( "padd_setmodel",function(ply, cmd, args)
 	if not ply:IsSuperAdmin() then return false end

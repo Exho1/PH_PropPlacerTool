@@ -1,6 +1,6 @@
 ----// Prop Adder //----
 -- Author: Exho
--- Version: 10/14/14
+-- Version: 10/15/14
 
 if SERVER then
 	AddCSLuaFile()
@@ -33,12 +33,17 @@ if SERVER then
 	local function DestroySpawnedProps()
 		MsgC( col, "* Cleaning up Spawned Props *\n" )
 		
+		local Count = 0
 		for k, v in pairs(ents.GetAll()) do
 			if v.TxtSpawned or v.PSpawned and IsValid(v) then -- If spawned from Txt or the Wep, remove
-				v:Remove() 
+				v:Remove()
+				Count = Count + 1
 			end
 		end
-		
+		if Count == 0 then
+			MsgC( col, "* No spawned props to clean up *\n" )
+			return
+		end
 		MsgC( col, "* All spawned props are banished *\n" )
 	end
 	hook.Add( "InitPostEntity", "AutomaticPropRearming", SpawnPropFromTxt) -- Spawn custom props after all the regular ones have 
